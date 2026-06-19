@@ -1,0 +1,121 @@
+{
+  "named_endpoints": {
+    "/_generate": {
+      "parameters": [
+        {
+          "label": "Teks",
+          "parameter_name": "text_input",
+          "parameter_has_default": false,
+          "parameter_default": null,
+          "type": "string",
+          "python_type": {
+            "type": "str",
+            "description": ""
+          },
+          "component": "Textbox",
+          "example_input": "Hello!!"
+        },
+        {
+          "label": "Voice Clone",
+          "parameter_name": "audio_prompt_path",
+          "parameter_has_default": true,
+          "parameter_default": null,
+          "type": "",
+          "python_type": {
+            "type": "filepath",
+            "description": "The FileData class is a subclass of the GradioModel class that represents a file object within a Gradio interface. It is used to store file data and metadata when a file is uploaded.\n\nAttributes:\n    path: The server file path where the file is stored.\n    url: The normalized server URL pointing to the file.\n    size: The size of the file in bytes.\n    orig_name: The original filename before upload.\n    mime_type: The MIME type of the file.\n    is_stream: Indicates whether the file is a stream.\n    meta: Additional metadata used internally (should not be changed)."
+          },
+          "component": "Audio",
+          "example_input": {
+            "path": "https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav",
+            "meta": {
+              "_type": "gradio.FileData"
+            },
+            "orig_name": "audio_sample.wav",
+            "url": "https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav"
+          }
+        },
+        {
+          "label": "Exaggeration",
+          "parameter_name": "exaggeration",
+          "parameter_has_default": true,
+          "parameter_default": 0.5,
+          "type": "number",
+          "python_type": {
+            "type": "float",
+            "description": ""
+          },
+          "component": "Slider",
+          "example_input": 0,
+          "description": "numeric value between 0 and 1"
+        },
+        {
+          "label": "Temperature",
+          "parameter_name": "temperature",
+          "parameter_has_default": true,
+          "parameter_default": 0.8,
+          "type": "number",
+          "python_type": {
+            "type": "float",
+            "description": ""
+          },
+          "component": "Slider",
+          "example_input": 0.1,
+          "description": "numeric value between 0.1 and 1.5"
+        },
+        {
+          "label": "Seed (0=random)",
+          "parameter_name": "seed",
+          "parameter_has_default": true,
+          "parameter_default": 0,
+          "type": "",
+          "python_type": {
+            "type": "int",
+            "description": ""
+          },
+          "component": "Number",
+          "example_input": 3
+        },
+        {
+          "label": "CFG Weight",
+          "parameter_name": "cfg_weight",
+          "parameter_has_default": true,
+          "parameter_default": 0.5,
+          "type": "number",
+          "python_type": {
+            "type": "float",
+            "description": ""
+          },
+          "component": "Slider",
+          "example_input": 0.1,
+          "description": "numeric value between 0.1 and 1.0"
+        }
+      ],
+      "returns": [
+        {
+          "label": "Hasil Audio",
+          "type": "",
+          "python_type": {
+            "type": "filepath",
+            "description": ""
+          },
+          "component": "Audio"
+        },
+        {
+          "label": "Status",
+          "type": "string",
+          "python_type": {
+            "type": "str",
+            "description": ""
+          },
+          "component": "Textbox"
+        }
+      ],
+      "type": {
+        "generator": false,
+        "cancel": false
+      }
+    }
+  },
+  "unnamed_endpoints": {}
+}

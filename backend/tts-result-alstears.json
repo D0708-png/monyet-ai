@@ -1,0 +1,19 @@
+{
+  "type": "data",
+  "time": "2026-06-19T06:30:34.856Z",
+  "data": [
+    {
+      "path": "/tmp/gradio/98298dc67fe51980a00f0ee2195063803cfc59bc67d53b30defbceb48ce62511/tmp2z1cvxg0.wav",
+      "url": "https://alstears-chatterbox-id-clone-api.hf.space/gradio_api/file=/tmp/gradio/98298dc67fe51980a00f0ee2195063803cfc59bc67d53b30defbceb48ce62511/tmp2z1cvxg0.wav",
+      "size": null,
+      "orig_name": "tmp2z1cvxg0.wav",
+      "mime_type": null,
+      "is_stream": false,
+      "meta": {
+        "_type": "gradio.FileData"
+      }
+    }
+  ],
+  "endpoint": "/clone_voice",
+  "fn_index": 0
+}

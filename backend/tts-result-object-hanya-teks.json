@@ -1,0 +1,10 @@
+{
+  "type": "data",
+  "time": "2026-06-19T06:24:18.105Z",
+  "data": [
+    null,
+    "❌ Error: 'NoneType' object is not callable"
+  ],
+  "endpoint": "/_generate",
+  "fn_index": 0
+}

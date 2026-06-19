@@ -1,0 +1,70 @@
+{
+  "named_endpoints": {
+    "/clone_voice": {
+      "parameters": [
+        {
+          "label": "Teks Rangkuman Materi Kuliah",
+          "parameter_name": "text",
+          "parameter_has_default": false,
+          "parameter_default": null,
+          "type": "string",
+          "python_type": {
+            "type": "str",
+            "description": ""
+          },
+          "component": "Textbox",
+          "example_input": "Hello!!"
+        },
+        {
+          "label": "Opsi Custom Voice (Kosongkan jika ingin pakai bobot default Mythia Batford)",
+          "parameter_name": "audio_file",
+          "parameter_has_default": false,
+          "parameter_default": null,
+          "type": "",
+          "python_type": {
+            "type": "filepath",
+            "description": "The FileData class is a subclass of the GradioModel class that represents a file object within a Gradio interface. It is used to store file data and metadata when a file is uploaded.\n\nAttributes:\n    path: The server file path where the file is stored.\n    url: The normalized server URL pointing to the file.\n    size: The size of the file in bytes.\n    orig_name: The original filename before upload.\n    mime_type: The MIME type of the file.\n    is_stream: Indicates whether the file is a stream.\n    meta: Additional metadata used internally (should not be changed)."
+          },
+          "component": "Audio",
+          "example_input": {
+            "path": "https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav",
+            "meta": {
+              "_type": "gradio.FileData"
+            },
+            "orig_name": "audio_sample.wav",
+            "url": "https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav"
+          }
+        },
+        {
+          "label": "Opsi URL File Audio Custom",
+          "parameter_name": "audio_url",
+          "parameter_has_default": false,
+          "parameter_default": null,
+          "type": "string",
+          "python_type": {
+            "type": "str",
+            "description": ""
+          },
+          "component": "Textbox",
+          "example_input": "Hello!!"
+        }
+      ],
+      "returns": [
+        {
+          "label": "Hasil Audio Akhir (WAV)",
+          "type": "",
+          "python_type": {
+            "type": "filepath",
+            "description": ""
+          },
+          "component": "Audio"
+        }
+      ],
+      "type": {
+        "generator": false,
+        "cancel": false
+      }
+    }
+  },
+  "unnamed_endpoints": {}
+}
