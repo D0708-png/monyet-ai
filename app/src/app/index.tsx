@@ -14,7 +14,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import * as Speech from "expo-speech";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const API_URL = "http://10.0.2.2:3001/chat";
+const API_URL = "https://monyet-ai.vercel.app/api/chat";
 
 type ChatItem = {
   role: "user" | "assistant";
