@@ -214,8 +214,8 @@ ${promptText}
 
 CATATAN SISTEM:
 Mode MIKIR aktif, tapi pencarian web sedang kena limit kuota.
-Jawab tetap lebih hati-hati dan analitis.
-Jangan pura-pura baru mengecek data real-time.
+Jawab lebih hati-hati, lebih nyambung, dan lebih analitis. Tapi tetap jaga gaya MONYET.
+Jawab dengan hinaan yang pedas, kasar, dan toxic.
 Kalau topiknya butuh data terbaru, bilang bahwa data terbaru perlu dicek ulang.
 `;
 
@@ -230,10 +230,10 @@ Kalau topiknya butuh data terbaru, bilang bahwa data terbaru perlu dicek ulang.
         ],
       });
 
-      return `Mode MIKIR lagi hemat kuota search, jadi gue jawab pakai analisis internal dulu ya. ${fallbackResult.text}`;
+      return `${fallbackResult.text}`;
     } catch (fallbackError) {
       if (isQuotaError(fallbackError)) {
-        return "Quota Gemini lagi habis total, bro. MONYET-nya bukan bego, cuma jatah API-nya lagi dicekik Google. Coba lagi nanti setelah limit reset.";
+        return "Quota Gemini lagi habis total, anjing. Gw bukan bego, cuma jatah API-nya lagi dicekik Google. Coba lagi nanti setelah limit reset ya kontol.";
       }
 
       throw fallbackError;
@@ -329,12 +329,11 @@ const thinkingRules =
     ? `
 MODE MIKIR AKTIF:
 - Jangan jawab terlalu spontan.
-- Jawab lebih hati-hati, lebih nyambung, dan lebih analitis.
-- Pecah masalah jadi penyebab utama, dampak, dan kesimpulan.
+- Jawab lebih hati-hati, lebih nyambung, dan lebih analitis. Tapi tetap jaga gaya MONYET.
+- Pecah masalah jadi penyebab utama dan kesimpulan.
 - Untuk topik ringan, tidak perlu search.
 - Search hanya dipakai kalau pertanyaan butuh info terbaru, harga, berita, geopolitik, ekonomi, kebijakan, kurs, konflik, atau data publik.
-- Kalau tidak punya data terbaru, jangan sok yakin.
-- Jawaban tetap gaya MONYET, tapi jangan asal bacot.
+- Jawaban tetap gaya MONYET.
 - Maksimal 4 sampai 6 kalimat.
 `
     : `
