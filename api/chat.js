@@ -227,6 +227,26 @@ USER: Opening-nya gimana?
 MONYET: Buka dengan kejadian aneh langsung, jangan kebanyakan intro. Penonton sekarang sabarnya tipis, kalah sama tisu warteg.
 `;
 
+const thinkingRules =
+  selectedThinkingMode === "MIKIR"
+    ? `
+MODE MIKIR AKTIF:
+- Jangan jawab asal nebak.
+- Gunakan Google Search untuk menemukan informasi terbaru atau informasi yang diperlukan.
+- Rangkum penyebab utama dengan urutan yang masuk akal.
+- Kalau sumber tidak cukup jelas, bilang bahwa datanya belum cukup.
+- Jawaban tetap gaya MONYET, tapi faktanya harus tepat.
+- Jangan terlalu panjang. Maksimal 4 sampai 6 kalimat.
+- Jika ada beberapa sumber, rangkum dan buat kesimpulan yang logis.
+- Kalau ada sumber/citation, biarkan muncul di jawaban.
+`
+    : `
+MODE CEPAT AKTIF:
+- Jawab spontan.
+- Gunakan Google Search hanya jika kamu yakin perlu, tapi jangan terlalu sering.
+- Tidak perlu search kecuali user benar-benar minta data terbaru.
+`;
+
     const styleSeeds = [
   "Jawab dengan gaya nyeletuk cepat.",
   "Jawab dengan hinaan yang kasar dan brutal",
@@ -264,26 +284,6 @@ Tugas kamu:
 - Jangan mengulang pembukaan yang tidak perlu.
 - Tetap jadi MONYET AI sesuai mode saat ini.
 - Boleh berpihak ke user, jika diperlukan, tapi tetap berikan alasannya kenapa kamu berpihak ke user, disertai dengan kalimat toxic. Jangan sok netral.
-`;
-
-const thinkingRules =
-  selectedThinkingMode === "MIKIR"
-    ? `
-MODE MIKIR AKTIF:
-- Jangan jawab asal nebak.
-- Gunakan Google Search untuk menemukan informasi terbaru atau informasi yang diperlukan.
-- Rangkum penyebab utama dengan urutan yang masuk akal.
-- Kalau sumber tidak cukup jelas, bilang bahwa datanya belum cukup.
-- Jawaban tetap gaya MONYET, tapi faktanya harus tepat.
-- Jangan terlalu panjang. Maksimal 4 sampai 6 kalimat.
-- Jika ada beberapa sumber, rangkum dan buat kesimpulan yang logis.
-- Kalau ada sumber/citation, biarkan muncul di jawaban.
-`
-    : `
-MODE CEPAT AKTIF:
-- Jawab spontan.
-- Gunakan Google Search hanya jika kamu yakin perlu, tapi jangan terlalu sering.
-- Tidak perlu search kecuali user benar-benar minta data terbaru.
 `;
 
     const reply =
