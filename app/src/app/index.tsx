@@ -23,6 +23,7 @@ type ChatItem = {
 
 export default function Index() {
   const [mode, setMode] = useState<"AMAN" | "BRUTAL">("AMAN");
+  const [thinkingMode, setThinkingMode] = useState<"CEPAT" | "MIKIR">("CEPAT");
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState(
     "Ketik sesuatu dulu. Gue bakal inget obrolan kita selama lu belum restart."
@@ -144,8 +145,12 @@ export default function Index() {
 
     try {
       setLoading(true);
+      setReply(
+  thinkingMode === "MIKIR"
+    ? "MONYET lagi mikir dulu... sabar, ini bukan sulap warteg."
+    : "MONYET lagi nyiapin bacotan..."
+);
       setLastAudioUrl("");
-      setReply("Bentar... gue lagi mikir sambil nginget bacotan lu tadi.");
       await stopSpeaking();
 
       const currentHistory = history.slice(-12);
@@ -156,10 +161,11 @@ export default function Index() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: text,
-          mode,
-          history: currentHistory,
-        }),
+  message: text,
+  mode,
+  thinkingMode,
+  history: currentHistory,
+}),
       });
 
       const data = await response.json();
@@ -239,6 +245,7 @@ export default function Index() {
             style={[styles.modeButton, mode === "BRUTAL" && styles.activeMode]}
             onPress={() => setMode("BRUTAL")}
           >
+
             <Text
               style={[
                 styles.modeText,
@@ -249,6 +256,42 @@ export default function Index() {
             </Text>
           </TouchableOpacity>
         </View>
+<Text style={styles.modeLabel}>MODE OTAK</Text>
+        <View style={styles.modeRow}>
+  <TouchableOpacity
+    style={[
+      styles.modeButton,
+      thinkingMode === "CEPAT" && styles.activeMode,
+    ]}
+    onPress={() => setThinkingMode("CEPAT")}
+  >
+    <Text
+      style={[
+        styles.modeText,
+        thinkingMode === "CEPAT" && styles.activeModeText,
+      ]}
+    >
+      CEPAT
+    </Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    style={[
+      styles.modeButton,
+      thinkingMode === "MIKIR" && styles.activeMode,
+    ]}
+    onPress={() => setThinkingMode("MIKIR")}
+  >
+    <Text
+      style={[
+        styles.modeText,
+        thinkingMode === "MIKIR" && styles.activeModeText,
+      ]}
+    >
+      MIKIR
+    </Text>
+  </TouchableOpacity>
+</View>
 
         <View style={styles.memoryBox}>
           <Text style={styles.memoryText}>
@@ -364,6 +407,22 @@ const styles = StyleSheet.create({
     padding: 6,
     marginBottom: 14,
   },
+  modeRow: {
+  width: "100%",
+  flexDirection: "row",
+  backgroundColor: "#1f1f1f",
+  borderRadius: 18,
+  padding: 6,
+  marginBottom: 14,
+},
+modeLabel: {
+  width: "100%",
+  color: "#777777",
+  fontWeight: "900",
+  fontSize: 12,
+  marginBottom: 8,
+  letterSpacing: 1,
+},
   modeButton: {
     flex: 1,
     paddingVertical: 14,

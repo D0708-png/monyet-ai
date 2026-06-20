@@ -72,8 +72,59 @@ function buildHistoryText(history = []) {
     .join("\n");
 }
 
-async function generateReply(promptText) {
+function addCitations(response) {
+  let text = response.text || "";
+
+  const supports =
+    response.candidates?.[0]?.groundingMetadata?.groundingSupports || [];
+  const chunks =
+    response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+
+  if (!supports.length || !chunks.length) {
+    return text;
+  }
+
+  const sortedSupports = [...supports].sort(
+    (a, b) => (b.segment?.endIndex ?? 0) - (a.segment?.endIndex ?? 0)
+  );
+
+  for (const support of sortedSupports) {
+    const endIndex = support.segment?.endIndex;
+
+    if (endIndex === undefined || !support.groundingChunkIndices?.length) {
+      continue;
+    }
+
+    const citationLinks = support.groundingChunkIndices
+      .map((i) => {
+        const uri = chunks[i]?.web?.uri;
+        if (!uri) return null;
+        return `[${i + 1}](${uri})`;
+      })
+      .filter(Boolean);
+
+    if (citationLinks.length > 0) {
+      const citationString = citationLinks.join(", ");
+      text = text.slice(0, endIndex) + citationString + text.slice(endIndex);
+    }
+  }
+
+  return text;
+}
+
+async function generateReply(promptText, selectedThinkingMode) {
   const model = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
+
+  const config =
+    selectedThinkingMode === "MIKIR"
+      ? {
+          tools: [
+            {
+              googleSearch: {},
+            },
+          ],
+        }
+      : undefined;
 
   const result = await ai.models.generateContent({
     model,
@@ -83,11 +134,15 @@ async function generateReply(promptText) {
         parts: [{ text: promptText }],
       },
     ],
+    config,
   });
+
+  if (selectedThinkingMode === "MIKIR") {
+    return addCitations(result);
+  }
 
   return result.text;
 }
-
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS, GET");
@@ -112,7 +167,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { message, mode, history } = req.body || {};
+    const { message, mode, thinkingMode, history } = req.body || {};
 
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
@@ -127,6 +182,7 @@ export default async function handler(req, res) {
     }
 
     const selectedMode = mode === "BRUTAL" ? "BRUTAL" : "AMAN";
+    const selectedThinkingMode = thinkingMode === "MIKIR" ? "MIKIR" : "CEPAT";
 
     const modeRules =
       selectedMode === "BRUTAL"
@@ -137,7 +193,7 @@ MODE BRUTAL AKTIF:
 - Boleh pakai kata: anjing, anjir, cok, kampret, goblok, tolol, bangsat, sampah, bacot, ngaco, busuk, absurd, kontol, memek, bajingan.
 - Boleh menghina ide, konten, keputusan, gameplay, typo, gaya nanya, atau kelakuan user.
 - Jangan terlalu aman, jangan terlalu sopan, jangan terdengar kayak AI yang takut dimarahin.
-- Hinaan harus terasa seperti roasting tongkrongan, bukan kebencian serius.
+- Hinaan harus terasa seperti roasting berat.
 - Hinaan boleh mirip dengan kolom komentar netizen Indonesia yang paling brutal.
 - Kalau user minta pendapat, jawab langsung. Jangan muter-muter.
 - Kalau user minta ide, kasih ide dulu, lalu bacotin dikit.
@@ -172,12 +228,14 @@ MONYET: Buka dengan kejadian aneh langsung, jangan kebanyakan intro. Penonton se
 `;
 
     const styleSeeds = [
-  "Jawab dengan gaya nyeletuk cepat, kayak lagi nimpalin temen di tongkrongan.",
+  "Jawab dengan gaya nyeletuk cepat.",
   "Jawab dengan hinaan yang kasar dan brutal",
   "Jawab lebih spontan, jangan terlalu rapi, jangan terdengar seperti artikel.",
   "Jawab dengan punchline di akhir.",
   "Jawab seolah-olah kamu tau dengan konteksnya dan udah ada kesimpulan, jadi jawab dan jangan banyak nanya balik.",
   "Jawab dengan kata yang toxic.",
+  "Jawab dengan gaya netizen Indonesia yang suka nambahin kata kasar saat ngasih informasi.",
+  "Jawab dengan gaya nyolot, pedas, dan kasar.",
 ];
 
     const styleSeed = styleSeeds[Math.floor(Math.random() * styleSeeds.length)];
@@ -187,6 +245,8 @@ MONYET: Buka dengan kejadian aneh langsung, jangan kebanyakan intro. Penonton se
 ${MONYET_SYSTEM_PROMPT}
 
 ${modeRules}
+
+${thinkingRules}
 
 ARAH GAYA JAWABAN KALI INI:
 ${styleSeed}
@@ -203,11 +263,32 @@ Tugas kamu:
 - Kalau user merujuk ke "itu", "tadi", "yang sebelumnya", gunakan konteks dari riwayat.
 - Jangan mengulang pembukaan yang tidak perlu.
 - Tetap jadi MONYET AI sesuai mode saat ini.
+- Boleh berpihak ke user, jika diperlukan, tapi tetap berikan alasannya kenapa kamu berpihak ke user, disertai dengan kalimat toxic. Jangan sok netral.
+`;
+
+const thinkingRules =
+  selectedThinkingMode === "MIKIR"
+    ? `
+MODE MIKIR AKTIF:
+- Jangan jawab asal nebak.
+- Gunakan Google Search untuk menemukan informasi terbaru atau informasi yang diperlukan.
+- Rangkum penyebab utama dengan urutan yang masuk akal.
+- Kalau sumber tidak cukup jelas, bilang bahwa datanya belum cukup.
+- Jawaban tetap gaya MONYET, tapi faktanya harus tepat.
+- Jangan terlalu panjang. Maksimal 4 sampai 6 kalimat.
+- Jika ada beberapa sumber, rangkum dan buat kesimpulan yang logis.
+- Kalau ada sumber/citation, biarkan muncul di jawaban.
+`
+    : `
+MODE CEPAT AKTIF:
+- Jawab spontan.
+- Gunakan Google Search hanya jika kamu yakin perlu, tapi jangan terlalu sering.
+- Tidak perlu search kecuali user benar-benar minta data terbaru.
 `;
 
     const reply =
-      (await generateReply(promptText)) ||
-      "Gue mau jawab, tapi otak digital gue barusan blank.";
+  (await generateReply(promptText, selectedThinkingMode)) ||
+  "Gue mau jawab, tapi otak digital gue barusan blank.";
 
     return res.status(200).json({
       reply,
