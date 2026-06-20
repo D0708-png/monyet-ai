@@ -143,6 +143,9 @@ function shouldUseSearch(message) {
     "ekonomi",
     "aturan baru",
     "kebijakan",
+    "data",
+    "fakta",
+    "penyebab",
   ];
 
   return searchKeywords.some((keyword) => text.includes(keyword));
@@ -160,8 +163,8 @@ function isQuotaError(error) {
   );
 }
 
-async function generateReply(promptText, selectedThinkingMode, message) {
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
+async function generateReply(promptText, message) {
+  const model = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 
   const normalRequest = {
     model,
@@ -173,8 +176,7 @@ async function generateReply(promptText, selectedThinkingMode, message) {
     ],
   };
 
-  const needSearch =
-    selectedThinkingMode === "MIKIR" && shouldUseSearch(message);
+  const needSearch = shouldUseSearch(message);
 
   if (!needSearch) {
     try {
@@ -182,7 +184,7 @@ async function generateReply(promptText, selectedThinkingMode, message) {
       return result.text;
     } catch (error) {
       if (isQuotaError(error)) {
-        return "Quota Gemini lagi kena limit, bro. Ini bukan aplikasinya rusak, otak servernya lagi disuruh ngantri. Coba lagi beberapa menit/jam lagi.";
+        return "Quotanya lagi abis njing, API-nya kena limit dari sononya. Makannya modal jangan cuma mau gratis doang kontol";
       }
 
       throw error;
@@ -207,16 +209,17 @@ async function generateReply(promptText, selectedThinkingMode, message) {
       throw error;
     }
 
-    console.log("Search grounding kena limit. Fallback ke Gemini biasa.");
+    console.log("Kena limit anjing");
 
     const fallbackPrompt = `
 ${promptText}
 
 CATATAN SISTEM:
-Mode MIKIR aktif, tapi pencarian web sedang kena limit kuota.
-Jawab lebih hati-hati, lebih nyambung, dan lebih analitis. Tapi tetap jaga gaya MONYET.
-Jawab dengan hinaan yang pedas, kasar, dan toxic.
-Kalau topiknya butuh data terbaru, bilang bahwa data terbaru perlu dicek ulang.
+Pertanyaan ini terlihat butuh info/fakta terbaru, tapi pencarian web sedang kena limit kuota.
+Jawab dengan hinaa dan toxic.
+Jawab harus dengan gaya MONYET.
+Jawab harus tetap pedas, kasar, dan toxic.
+Jawab harus spontan, jangan terlalu rapi, jangan terdengar kayak artikel.
 `;
 
     try {
@@ -233,7 +236,7 @@ Kalau topiknya butuh data terbaru, bilang bahwa data terbaru perlu dicek ulang.
       return `${fallbackResult.text}`;
     } catch (fallbackError) {
       if (isQuotaError(fallbackError)) {
-        return "Quota Gemini lagi habis total, anjing. Gw bukan bego, cuma jatah API-nya lagi dicekik Google. Coba lagi nanti setelah limit reset ya kontol.";
+        return "Quotanya lagi abis njing, sabar dulu ya ngentod.";
       }
 
       throw fallbackError;
@@ -264,7 +267,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { message, mode, thinkingMode, history } = req.body || {};
+    const { message, mode, history } = req.body || {};
 
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
@@ -279,7 +282,6 @@ export default async function handler(req, res) {
     }
 
     const selectedMode = mode === "BRUTAL" ? "BRUTAL" : "AMAN";
-    const selectedThinkingMode = thinkingMode === "MIKIR" ? "MIKIR" : "CEPAT";
 
     const modeRules =
       selectedMode === "BRUTAL"
@@ -324,23 +326,15 @@ USER: Opening-nya gimana?
 MONYET: Buka dengan kejadian aneh langsung, jangan kebanyakan intro. Penonton sekarang sabarnya tipis, kalah sama tisu warteg.
 `;
 
-const thinkingRules =
-  selectedThinkingMode === "MIKIR"
-    ? `
-MODE MIKIR AKTIF:
+const infoRules = `
+ATURAN AKURASI:
 - Jangan jawab terlalu spontan.
-- Jawab lebih hati-hati, lebih nyambung, dan lebih analitis. Tapi tetap jaga gaya MONYET.
-- Pecah masalah jadi penyebab utama dan kesimpulan.
+- Jawab gaya MONYET.
+- Jawab dengan gaya nyeletuk cepat, tapi tetap akurat.
 - Untuk topik ringan, tidak perlu search.
 - Search hanya dipakai kalau pertanyaan butuh info terbaru, harga, berita, geopolitik, ekonomi, kebijakan, kurs, konflik, atau data publik.
 - Jawaban tetap gaya MONYET.
 - Maksimal 4 sampai 6 kalimat.
-`
-    : `
-MODE CEPAT AKTIF:
-- Jawab spontan.
-- Cocok untuk ngobrol santai, roasting, jokes, ide konten, dan pertanyaan ringan.
-- Jawaban pendek, nyolot, dan langsung.
 `;
 
     const styleSeeds = [
@@ -362,7 +356,7 @@ ${MONYET_SYSTEM_PROMPT}
 
 ${modeRules}
 
-${thinkingRules}
+${infoRules}
 
 ARAH GAYA JAWABAN KALI INI:
 ${styleSeed}
@@ -383,8 +377,8 @@ Tugas kamu:
 `;
 
     const reply =
-  (await generateReply(promptText, selectedThinkingMode, message)) ||
-  "Gue mau jawab, tapi otak digital gue barusan blank.";
+  (await generateReply(promptText, message)) ||
+  "Sabar ya sayang....";
 
     return res.status(200).json({
       reply,

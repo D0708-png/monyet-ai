@@ -23,7 +23,6 @@ type ChatItem = {
 
 export default function Index() {
   const [mode, setMode] = useState<"AMAN" | "BRUTAL">("AMAN");
-  const [thinkingMode, setThinkingMode] = useState<"CEPAT" | "MIKIR">("CEPAT");
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState(
     "Ketik sesuatu dulu. Gue bakal inget obrolan kita selama lu belum restart."
@@ -145,11 +144,7 @@ export default function Index() {
 
     try {
       setLoading(true);
-      setReply(
-  thinkingMode === "MIKIR"
-    ? "MONYET lagi mikir dulu... sabar, ini bukan sulap warteg."
-    : "MONYET lagi nyiapin bacotan..."
-);
+      setReply("Sabar tod, gw lagi nyari info dulu biar ga goblok kayak lu yang cuma bisa asumsi tanpa bukti.");
       setLastAudioUrl("");
       await stopSpeaking();
 
@@ -163,7 +158,6 @@ export default function Index() {
         body: JSON.stringify({
   message: text,
   mode,
-  thinkingMode,
   history: currentHistory,
 }),
       });
@@ -256,42 +250,6 @@ export default function Index() {
             </Text>
           </TouchableOpacity>
         </View>
-<Text style={styles.modeLabel}>MODE OTAK</Text>
-        <View style={styles.modeRow}>
-  <TouchableOpacity
-    style={[
-      styles.modeButton,
-      thinkingMode === "CEPAT" && styles.activeMode,
-    ]}
-    onPress={() => setThinkingMode("CEPAT")}
-  >
-    <Text
-      style={[
-        styles.modeText,
-        thinkingMode === "CEPAT" && styles.activeModeText,
-      ]}
-    >
-      CEPAT
-    </Text>
-  </TouchableOpacity>
-
-  <TouchableOpacity
-    style={[
-      styles.modeButton,
-      thinkingMode === "MIKIR" && styles.activeMode,
-    ]}
-    onPress={() => setThinkingMode("MIKIR")}
-  >
-    <Text
-      style={[
-        styles.modeText,
-        thinkingMode === "MIKIR" && styles.activeModeText,
-      ]}
-    >
-      MIKIR
-    </Text>
-  </TouchableOpacity>
-</View>
 
         <View style={styles.memoryBox}>
           <Text style={styles.memoryText}>
@@ -407,14 +365,6 @@ const styles = StyleSheet.create({
     padding: 6,
     marginBottom: 14,
   },
-  modeRow: {
-  width: "100%",
-  flexDirection: "row",
-  backgroundColor: "#1f1f1f",
-  borderRadius: 18,
-  padding: 6,
-  marginBottom: 14,
-},
 modeLabel: {
   width: "100%",
   color: "#777777",
