@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#050505" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MONYET AI" />
+
+  <title>MONYET AI</title>
+
+  <link rel="apple-touch-icon" href="/app/assets/images/icon.png" />
+  <link rel="icon" href="/app/assets/images/icon.png" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #050505;
+      --card: rgba(24, 24, 24, 0.84);
+      --card2: rgba(35, 35, 35, 0.76);
+      --text: #ffffff;
+      --muted: #9b9b9b;
+      --yellow: #ffcc00;
+      --border: rgba(255, 255, 255, 0.12);
+      --danger: #ff4d4d;
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", sans-serif;
+      overflow-x: hidden;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 20% 10%, rgba(255, 204, 0, 0.16), transparent 26%),
+        radial-gradient(circle at 80% 20%, rgba(0, 204, 255, 0.16), transparent 28%),
+        radial-gradient(circle at 50% 100%, rgba(255, 60, 0, 0.10), transparent 35%),
+        #050505;
+    }
+
+    .noise {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.06;
+      z-index: 1;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.09) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: 38px 38px;
+      mask-image: radial-gradient(circle at center, black, transparent 75%);
+    }
+
+    .orb {
+      position: fixed;
+      width: 280px;
+      height: 280px;
+      border-radius: 999px;
+      filter: blur(45px);
+      opacity: 0.32;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .orb.one {
+      top: -80px;
+      left: -70px;
+      background: #ffcc00;
+    }
+
+    .orb.two {
+      bottom: 70px;
+      right: -80px;
+      background: #00d5ff;
+    }
+
+    .app {
+      position: relative;
+      z-index: 2;
+      min-height: 100dvh;
+      padding: calc(18px + var(--safe-top)) 14px calc(16px + var(--safe-bottom));
+      display: flex;
+      justify-content: center;
+    }
+
+    .phone {
+      width: min(100%, 440px);
+      min-height: calc(100dvh - 28px);
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      border-radius: 34px;
+      background: rgba(8, 8, 8, 0.82);
+      box-shadow:
+        0 24px 80px rgba(0,0,0,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.10);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .top {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.01));
+    }
+
+    .island {
+      width: 112px;
+      height: 30px;
+      margin: 0 auto 16px;
+      border-radius: 999px;
+      background: #000;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .island-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--yellow);
+      box-shadow: 0 0 18px rgba(255,204,0,0.9);
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 54px;
+      height: 54px;
+      border-radius: 18px;
+      object-fit: cover;
+      background: #111;
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: 0 0 28px rgba(255,204,0,0.14);
+    }
+
+    .brand-text {
+      flex: 1;
+    }
+
+    .kicker {
+      font-size: 12px;
+      color: var(--yellow);
+      font-weight: 900;
+      letter-spacing: 1px;
+      margin-bottom: 3px;
+    }
+
+    h1 {
+      font-size: 27px;
+      line-height: 1;
+      margin: 0;
+      letter-spacing: -0.8px;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    .status {
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: #bdbdbd;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .pulse {
+      width: 9px;
+      height: 9px;
+      background: #31ff7a;
+      border-radius: 999px;
+      box-shadow: 0 0 16px #31ff7a;
+    }
+
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 14px;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .mode-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      padding: 6px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .mode-btn {
+      border: none;
+      border-radius: 15px;
+      padding: 12px 10px;
+      color: #cfcfcf;
+      background: transparent;
+      font-weight: 1000;
+      letter-spacing: 0.6px;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    .mode-btn:active {
+      transform: scale(0.96);
+    }
+
+    .mode-btn.active {
+      background: var(--yellow);
+      color: #111;
+      box-shadow: 0 10px 26px rgba(255,204,0,0.23);
+    }
+
+    .chat-box {
+      flex: 1;
+      min-height: 310px;
+      overflow-y: auto;
+      padding: 4px 2px 12px;
+      scroll-behavior: smooth;
+    }
+
+    .bubble {
+      width: fit-content;
+      max-width: 88%;
+      padding: 13px 14px;
+      border-radius: 22px;
+      margin: 10px 0;
+      line-height: 1.45;
+      font-size: 15px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .bubble.user {
+      margin-left: auto;
+      background: var(--yellow);
+      color: #111;
+      border-bottom-right-radius: 8px;
+      font-weight: 800;
+    }
+
+    .bubble.assistant {
+      background: rgba(28, 28, 28, 0.86);
+      color: #fff;
+      border-bottom-left-radius: 8px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    .bubble.system {
+      max-width: 100%;
+      width: 100%;
+      background: rgba(255,255,255,0.055);
+      color: #bfbfbf;
+      text-align: center;
+      font-size: 13px;
+      border-radius: 18px;
+    }
+
+    .label {
+      font-size: 11px;
+      color: var(--yellow);
+      font-weight: 1000;
+      letter-spacing: 0.8px;
+      margin-bottom: 6px;
+    }
+
+    .composer {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 12px 14px calc(14px + var(--safe-bottom));
+      background: rgba(8,8,8,0.86);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .input-shell {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 24px;
+      padding: 8px;
+    }
+
+    textarea {
+      flex: 1;
+      min-height: 46px;
+      max-height: 120px;
+      resize: none;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: #fff;
+      font-size: 15px;
+      line-height: 1.35;
+      padding: 11px 8px;
+      font-family: inherit;
+    }
+
+    textarea::placeholder {
+      color: #777;
+    }
+
+    .send {
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      border: none;
+      background: var(--yellow);
+      color: #111;
+      font-weight: 1000;
+      cursor: pointer;
+      box-shadow: 0 12px 30px rgba(255,204,0,0.22);
+    }
+
+    .send:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .small-btn {
+      flex: 1;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.055);
+      color: #d8d8d8;
+      padding: 11px 10px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .small-btn.danger {
+      color: #ffb5b5;
+    }
+
+    .loader {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .loader span {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--yellow);
+      display: inline-block;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (min-width: 760px) {
+      .phone {
+        min-height: 780px;
+        max-height: 920px;
+      }
+
+      .app {
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="orb one"></div>
+  <div class="orb two"></div>
+  <div class="noise"></div>
+
+  <main class="app">
+    <section class="phone" id="phone">
+      <header class="top">
+        <div class="island">
+          <div class="island-dot"></div>
+        </div>
+
+        <div class="brand-row">
+          <img class="logo" src="/app/assets/images/icon.png" alt="MONYET AI" onerror="this.style.display='none'" />
+          <div class="brand-text">
+            <div class="kicker">MONYET ONLINE</div>
+            <h1>MONYET AI</h1>
+            <div class="sub">AI nyolot, tapi sekarang cek info dulu sebelum bacot.</div>
+          </div>
+        </div>
+
+        <div class="status">
+          <span class="pulse"></span>
+          <span id="statusText">Backend siap ngegas</span>
+        </div>
+      </header>
+
+      <section class="content">
+        <div class="mode-wrap" id="modeWrap">
+          <button class="mode-btn active" data-mode="AMAN">AMAN</button>
+          <button class="mode-btn" data-mode="BRUTAL">BRUTAL</button>
+        </div>
+
+        <div class="chat-box" id="chatBox">
+          <div class="bubble system">
+            Ketik sesuatu dulu. Gue bakal inget obrolan selama lu belum reset.
+          </div>
+        </div>
+      </section>
+
+      <footer class="composer">
+        <div class="input-shell">
+          <textarea id="messageInput" placeholder="Tanya apa aja..." rows="1"></textarea>
+          <button class="send" id="sendBtn">GO</button>
+        </div>
+
+        <div class="toolbar">
+          <button class="small-btn" id="voiceBtn">BACAIN</button>
+          <button class="small-btn danger" id="resetBtn">RESET MEMORY</button>
+        </div>
+      </footer>
+    </section>
+  </main>
+
+  <script>
+    const API_URL = "/api/chat";
+    const STORAGE_KEY = "monyet_ai_web_history_v1";
+
+    const chatBox = document.getElementById("chatBox");
+    const input = document.getElementById("messageInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const voiceBtn = document.getElementById("voiceBtn");
+    const statusText = document.getElementById("statusText");
+    const modeButtons = document.querySelectorAll(".mode-btn");
+
+    let mode = "AMAN";
+    let loading = false;
+    let lastReply = "";
+    let history = loadHistory();
+
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveHistory() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(-24)));
+    }
+
+    function scrollBottom() {
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function renderHistory() {
+      chatBox.innerHTML = "";
+
+      if (!history.length) {
+        const intro = document.createElement("div");
+        intro.className = "bubble system";
+        intro.textContent = "Ketik sesuatu dulu. Gue bakal inget obrolan selama lu belum reset.";
+        chatBox.appendChild(intro);
+        return;
+      }
+
+      history.forEach((item) => {
+        addBubble(item.text, item.role, false);
+      });
+
+      setTimeout(scrollBottom, 50);
+    }
+
+    function addBubble(text, role = "assistant", animate = true) {
+      const bubble = document.createElement("div");
+      bubble.className = `bubble ${role}`;
+      bubble.textContent = text;
+      chatBox.appendChild(bubble);
+
+      if (animate && window.gsap) {
+        gsap.fromTo(
+          bubble,
+          { y: 18, opacity: 0, scale: 0.96 },
+          { y: 0, opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.7)" }
+        );
+      }
+
+      scrollBottom();
+      return bubble;
+    }
+
+    function addLoadingBubble() {
+      const bubble = document.createElement("div");
+      bubble.className = "bubble assistant";
+      bubble.innerHTML = `
+        <div class="label">MONYET MIKIR</div>
+        <div class="loader">
+          <span></span><span></span><span></span>
+        </div>
+        <div style="margin-top:8px;color:#d6d6d6;">
+          Lagi cek info dulu bentar... jangan buru-buru kayak cicilan.
+        </div>
+      `;
+      chatBox.appendChild(bubble);
+
+      if (window.gsap) {
+        gsap.fromTo(bubble, { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.25 });
+        gsap.to(bubble.querySelectorAll(".loader span"), {
+          y: -5,
+          stagger: 0.12,
+          repeat: -1,
+          yoyo: true,
+          duration: 0.35,
+          ease: "power1.inOut"
+        });
+      }
+
+      scrollBottom();
+      return bubble;
+    }
+
+    function setLoading(value) {
+      loading = value;
+      sendBtn.disabled = value;
+      input.disabled = value;
+      sendBtn.textContent = value ? "..." : "GO";
+      statusText.textContent = value ? "MONYET lagi proses..." : "Backend siap ngegas";
+    }
+
+    async function sendMessage() {
+      const text = input.value.trim();
+
+      if (!text || loading) return;
+
+      input.value = "";
+      autoResize();
+
+      const currentHistory = history.slice(-12);
+
+      history.push({ role: "user", text });
+      saveHistory();
+      addBubble(text, "user");
+
+      const loadingBubble = addLoadingBubble();
+      setLoading(true);
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: text,
+            mode,
+            history: currentHistory,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || data.error || "Backend error");
+        }
+
+        const reply =
+          data.reply ||
+          "Gue jawab kosong. Ini AI-nya lagi bengong kayak printer rusak.";
+
+        lastReply = reply;
+
+        loadingBubble.remove();
+        addBubble(reply, "assistant");
+
+        history.push({ role: "assistant", text: reply });
+        saveHistory();
+
+        if (window.gsap) {
+          gsap.fromTo(".pulse", { scale: 1 }, { scale: 1.8, repeat: 1, yoyo: true, duration: 0.18 });
+        }
+      } catch (error) {
+        loadingBubble.remove();
+
+        const errText = `Yah error. MONYET-nya kepeleset: ${error.message}`;
+        lastReply = errText;
+        addBubble(errText, "assistant");
+      } finally {
+        setLoading(false);
+        input.focus();
+      }
+    }
+
+    function autoResize() {
+      input.style.height = "auto";
+      input.style.height = Math.min(input.scrollHeight, 120) + "px";
+    }
+
+    modeButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        mode = btn.dataset.mode;
+
+        modeButtons.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        if (window.gsap) {
+          gsap.fromTo(btn, { scale: 0.92 }, { scale: 1, duration: 0.28, ease: "back.out(2.2)" });
+        }
+      });
+    });
+
+    sendBtn.addEventListener("click", sendMessage);
+
+    input.addEventListener("input", autoResize);
+
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+
+    resetBtn.addEventListener("click", () => {
+      history = [];
+      lastReply = "";
+      localStorage.removeItem(STORAGE_KEY);
+      renderHistory();
+
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+
+      if (window.gsap) {
+        gsap.fromTo("#phone", { rotate: -1 }, { rotate: 0, duration: 0.35, ease: "elastic.out(1, 0.4)" });
+      }
+    });
+
+    voiceBtn.addEventListener("click", () => {
+      if (!lastReply) return;
+
+      if (!window.speechSynthesis) {
+        alert("Browser ini nggak support suara, bro.");
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(lastReply);
+      utterance.lang = "id-ID";
+      utterance.rate = 1.05;
+      utterance.pitch = 0.9;
+
+      window.speechSynthesis.speak(utterance);
+    });
+
+    renderHistory();
+
+    if (window.gsap) {
+      gsap.fromTo("#phone", { y: 34, opacity: 0, scale: 0.96 }, { y: 0, opacity: 1, scale: 1, duration: 0.75, ease: "power3.out" });
+      gsap.fromTo(".logo", { rotate: -8, scale: 0.85 }, { rotate: 0, scale: 1, duration: 0.65, ease: "elastic.out(1, 0.45)", delay: 0.15 });
+      gsap.to(".orb.one", { x: 45, y: 20, repeat: -1, yoyo: true, duration: 5.5, ease: "sine.inOut" });
+      gsap.to(".orb.two", { x: -55, y: -24, repeat: -1, yoyo: true, duration: 6.2, ease: "sine.inOut" });
+      gsap.to(".island-dot", { opacity: 0.35, repeat: -1, yoyo: true, duration: 0.8, ease: "sine.inOut" });
+    }
+  </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "MONYET AI",
-    "slug": "monyet-ai",
+    "slug": "monyet-ai-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
