@@ -144,7 +144,9 @@ export default function Index() {
 
     try {
       setLoading(true);
-      setReply("Sabar tod, gw lagi nyari info dulu biar ga goblok kayak lu yang cuma bisa asumsi tanpa bukti.");
+      setReply(
+        "Sabar tod, gw lagi nyari info dulu biar ga goblok kayak lu yang cuma bisa asumsi tanpa bukti."
+      );
       setLastAudioUrl("");
       await stopSpeaking();
 
@@ -156,10 +158,10 @@ export default function Index() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-  message: text,
-  mode,
-  history: currentHistory,
-}),
+          message: text,
+          mode,
+          history: currentHistory,
+        }),
       });
 
       const data = await response.json();
@@ -239,7 +241,6 @@ export default function Index() {
             style={[styles.modeButton, mode === "BRUTAL" && styles.activeMode]}
             onPress={() => setMode("BRUTAL")}
           >
-
             <Text
               style={[
                 styles.modeText,
@@ -322,7 +323,7 @@ export default function Index() {
 
         <Text style={styles.note}>
           Memori cuma aktif selama percakapan ini. Klik RESTART untuk mulai dari
-          nol. Kalau TTS Chatterbox error, app fallback ke suara Android.
+          nol.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -365,14 +366,6 @@ const styles = StyleSheet.create({
     padding: 6,
     marginBottom: 14,
   },
-modeLabel: {
-  width: "100%",
-  color: "#777777",
-  fontWeight: "900",
-  fontSize: 12,
-  marginBottom: 8,
-  letterSpacing: 1,
-},
   modeButton: {
     flex: 1,
     paddingVertical: 14,
