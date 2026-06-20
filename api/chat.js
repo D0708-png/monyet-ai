@@ -112,21 +112,58 @@ function addCitations(response) {
   return text;
 }
 
-async function generateReply(promptText, selectedThinkingMode) {
+function shouldUseSearch(message) {
+  const text = String(message || "").toLowerCase();
+
+  const searchKeywords = [
+    "hari ini",
+    "sekarang",
+    "terbaru",
+    "update",
+    "berita",
+    "harga",
+    "bbm",
+    "minyak",
+    "geopolitik",
+    "kurs",
+    "dolar",
+    "rupiah",
+    "saham",
+    "crypto",
+    "kripto",
+    "rilis",
+    "2025",
+    "2026",
+    "presiden",
+    "menteri",
+    "perang",
+    "konflik",
+    "inflasi",
+    "resesi",
+    "ekonomi",
+    "aturan baru",
+    "kebijakan",
+  ];
+
+  return searchKeywords.some((keyword) => text.includes(keyword));
+}
+
+function isQuotaError(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+
+  return (
+    message.includes("429") ||
+    message.includes("quota") ||
+    message.includes("resource_exhausted") ||
+    message.includes("rate limit") ||
+    message.includes("rate-limit")
+  );
+}
+
+async function generateReply(promptText, selectedThinkingMode, message) {
   const model = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
 
-  const config =
-    selectedThinkingMode === "MIKIR"
-      ? {
-          tools: [
-            {
-              googleSearch: {},
-            },
-          ],
-        }
-      : undefined;
-
-  const result = await ai.models.generateContent({
+  const normalRequest = {
     model,
     contents: [
       {
@@ -134,14 +171,74 @@ async function generateReply(promptText, selectedThinkingMode) {
         parts: [{ text: promptText }],
       },
     ],
-    config,
-  });
+  };
 
-  if (selectedThinkingMode === "MIKIR") {
-    return addCitations(result);
+  const needSearch =
+    selectedThinkingMode === "MIKIR" && shouldUseSearch(message);
+
+  if (!needSearch) {
+    try {
+      const result = await ai.models.generateContent(normalRequest);
+      return result.text;
+    } catch (error) {
+      if (isQuotaError(error)) {
+        return "Quota Gemini lagi kena limit, bro. Ini bukan aplikasinya rusak, otak servernya lagi disuruh ngantri. Coba lagi beberapa menit/jam lagi.";
+      }
+
+      throw error;
+    }
   }
 
-  return result.text;
+  try {
+    const result = await ai.models.generateContent({
+      ...normalRequest,
+      config: {
+        tools: [
+          {
+            googleSearch: {},
+          },
+        ],
+      },
+    });
+
+    return addCitations(result);
+  } catch (error) {
+    if (!isQuotaError(error)) {
+      throw error;
+    }
+
+    console.log("Search grounding kena limit. Fallback ke Gemini biasa.");
+
+    const fallbackPrompt = `
+${promptText}
+
+CATATAN SISTEM:
+Mode MIKIR aktif, tapi pencarian web sedang kena limit kuota.
+Jawab tetap lebih hati-hati dan analitis.
+Jangan pura-pura baru mengecek data real-time.
+Kalau topiknya butuh data terbaru, bilang bahwa data terbaru perlu dicek ulang.
+`;
+
+    try {
+      const fallbackResult = await ai.models.generateContent({
+        model,
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: fallbackPrompt }],
+          },
+        ],
+      });
+
+      return `Mode MIKIR lagi hemat kuota search, jadi gue jawab pakai analisis internal dulu ya. ${fallbackResult.text}`;
+    } catch (fallbackError) {
+      if (isQuotaError(fallbackError)) {
+        return "Quota Gemini lagi habis total, bro. MONYET-nya bukan bego, cuma jatah API-nya lagi dicekik Google. Coba lagi nanti setelah limit reset.";
+      }
+
+      throw fallbackError;
+    }
+  }
 }
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -231,20 +328,20 @@ const thinkingRules =
   selectedThinkingMode === "MIKIR"
     ? `
 MODE MIKIR AKTIF:
-- Jangan jawab asal nebak.
-- Gunakan Google Search untuk menemukan informasi terbaru atau informasi yang diperlukan.
-- Rangkum penyebab utama dengan urutan yang masuk akal.
-- Kalau sumber tidak cukup jelas, bilang bahwa datanya belum cukup.
-- Jawaban tetap gaya MONYET, tapi faktanya harus tepat.
-- Jangan terlalu panjang. Maksimal 4 sampai 6 kalimat.
-- Jika ada beberapa sumber, rangkum dan buat kesimpulan yang logis.
-- Kalau ada sumber/citation, biarkan muncul di jawaban.
+- Jangan jawab terlalu spontan.
+- Jawab lebih hati-hati, lebih nyambung, dan lebih analitis.
+- Pecah masalah jadi penyebab utama, dampak, dan kesimpulan.
+- Untuk topik ringan, tidak perlu search.
+- Search hanya dipakai kalau pertanyaan butuh info terbaru, harga, berita, geopolitik, ekonomi, kebijakan, kurs, konflik, atau data publik.
+- Kalau tidak punya data terbaru, jangan sok yakin.
+- Jawaban tetap gaya MONYET, tapi jangan asal bacot.
+- Maksimal 4 sampai 6 kalimat.
 `
     : `
 MODE CEPAT AKTIF:
 - Jawab spontan.
-- Gunakan Google Search hanya jika kamu yakin perlu, tapi jangan terlalu sering.
-- Tidak perlu search kecuali user benar-benar minta data terbaru.
+- Cocok untuk ngobrol santai, roasting, jokes, ide konten, dan pertanyaan ringan.
+- Jawaban pendek, nyolot, dan langsung.
 `;
 
     const styleSeeds = [
@@ -287,7 +384,7 @@ Tugas kamu:
 `;
 
     const reply =
-  (await generateReply(promptText, selectedThinkingMode)) ||
+  (await generateReply(promptText, selectedThinkingMode, message)) ||
   "Gue mau jawab, tapi otak digital gue barusan blank.";
 
     return res.status(200).json({
