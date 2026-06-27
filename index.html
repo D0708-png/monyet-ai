@@ -354,6 +354,56 @@
       margin-top: 10px;
     }
 
+    .image-preview {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.055);
+    }
+
+    .image-preview img {
+      width: 62px;
+      height: 62px;
+      object-fit: cover;
+      border-radius: 14px;
+      background: #111;
+    }
+
+    .image-preview-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .image-preview-title {
+      color: var(--yellow);
+      font-size: 12px;
+      font-weight: 1000;
+      margin-bottom: 4px;
+    }
+
+    .image-preview-name {
+      color: #cfcfcf;
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .image-clear {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.22);
+      color: #ffb5b5;
+      padding: 9px 10px;
+      border-radius: 13px;
+      font-size: 11px;
+      font-weight: 1000;
+      cursor: pointer;
+    }
+
     .small-btn {
       flex: 1;
       border: 1px solid rgba(255,255,255,0.10);
@@ -447,7 +497,18 @@
           <button class="send" id="sendBtn">GO</button>
         </div>
 
+        <div class="image-preview hidden" id="imagePreview">
+          <img id="imageThumb" alt="Preview gambar" />
+          <div class="image-preview-info">
+            <div class="image-preview-title">GAMBAR TEMPORARY</div>
+            <div class="image-preview-name" id="imageName">Image siap dikirim</div>
+          </div>
+          <button class="image-clear" id="clearImageBtn">HAPUS</button>
+        </div>
+
         <div class="toolbar">
+          <input type="file" id="imageInput" accept="image/*" hidden />
+          <button class="small-btn" id="uploadBtn">UPLOAD IMAGE</button>
           <button class="small-btn" id="voiceBtn">BACAIN</button>
           <button class="small-btn danger" id="resetBtn">RESET MEMORY</button>
         </div>
@@ -464,6 +525,12 @@
     const sendBtn = document.getElementById("sendBtn");
     const resetBtn = document.getElementById("resetBtn");
     const voiceBtn = document.getElementById("voiceBtn");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const imageInput = document.getElementById("imageInput");
+    const imagePreview = document.getElementById("imagePreview");
+    const imageThumb = document.getElementById("imageThumb");
+    const imageName = document.getElementById("imageName");
+    const clearImageBtn = document.getElementById("clearImageBtn");
     const statusText = document.getElementById("statusText");
     const modeButtons = document.querySelectorAll(".mode-btn");
 
@@ -471,6 +538,7 @@
     let loading = false;
     let lastReply = "";
     let history = loadHistory();
+    let selectedImage = null;
 
     function loadHistory() {
       try {
@@ -564,19 +632,108 @@
       statusText.textContent = value ? "MONYET lagi proses..." : "Backend siap ngegas";
     }
 
+    function resetSelectedImage() {
+      selectedImage = null;
+      imageInput.value = "";
+      imageThumb.removeAttribute("src");
+      imageName.textContent = "Image siap dikirim";
+      imagePreview.classList.add("hidden");
+    }
+
+    function readFileAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function loadImage(dataUrl) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = dataUrl;
+      });
+    }
+
+    async function compressImageFile(file) {
+      const originalDataUrl = await readFileAsDataURL(file);
+      const img = await loadImage(originalDataUrl);
+      const maxSize = 1280;
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const width = Math.max(1, Math.round(img.width * scale));
+      const height = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = width;
+      canvas.height = height;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const mimeType = "image/jpeg";
+      const dataUrl = canvas.toDataURL(mimeType, 0.72);
+      const base64 = dataUrl.split(",")[1] || "";
+
+      if (base64.length > 4000000) {
+        throw new Error("Gambarnya masih kegedean setelah dikompres. Pilih gambar yang lebih kecil.");
+      }
+
+      return {
+        dataUrl,
+        base64,
+        mimeType,
+        name: file.name || "gambar-user.jpg",
+      };
+    }
+
+    async function handleImageUpload(file) {
+      if (!file) return;
+
+      if (!file.type.startsWith("image/")) {
+        alert("Pilih file gambar, bukan file random kayak isi folder Downloads lu.");
+        return;
+      }
+
+      try {
+        statusText.textContent = "Lagi kompres gambar...";
+        selectedImage = await compressImageFile(file);
+        imageThumb.src = selectedImage.dataUrl;
+        imageName.textContent = selectedImage.name;
+        imagePreview.classList.remove("hidden");
+
+        if (window.gsap) {
+          gsap.fromTo(imagePreview, { y: 10, opacity: 0 }, { y: 0, opacity: 1, duration: 0.28 });
+        }
+      } catch (error) {
+        alert(error.message || "Gagal baca gambar.");
+        resetSelectedImage();
+      } finally {
+        statusText.textContent = "Backend siap ngegas";
+      }
+    }
+
     async function sendMessage() {
       const text = input.value.trim();
+      const imageToSend = selectedImage;
+      const messageToSend = text || "Jelaskan gambar ini dengan gaya MONYET AI.";
 
-      if (!text || loading) return;
+      if ((!text && !imageToSend) || loading) return;
 
       input.value = "";
       autoResize();
 
       const currentHistory = history.slice(-12);
+      const userTextForHistory = imageToSend
+        ? `📷 Gambar terlampir${text ? `\n${text}` : ""}`
+        : text;
 
-      history.push({ role: "user", text });
+      history.push({ role: "user", text: userTextForHistory });
       saveHistory();
-      addBubble(text, "user");
+      addBubble(userTextForHistory, "user");
 
       const loadingBubble = addLoadingBubble();
       setLoading(true);
@@ -588,9 +745,11 @@
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            message: text,
+            message: messageToSend,
             mode,
             history: currentHistory,
+            imageBase64: imageToSend?.base64 || null,
+            imageMimeType: imageToSend?.mimeType || null,
           }),
         });
 
@@ -611,6 +770,7 @@
 
         history.push({ role: "assistant", text: reply });
         saveHistory();
+        resetSelectedImage();
 
         if (window.gsap) {
           gsap.fromTo(".pulse", { scale: 1 }, { scale: 1.8, repeat: 1, yoyo: true, duration: 0.18 });
@@ -656,9 +816,19 @@
       }
     });
 
+    uploadBtn.addEventListener("click", () => imageInput.click());
+
+    imageInput.addEventListener("change", (event) => {
+      const file = event.target.files?.[0];
+      handleImageUpload(file);
+    });
+
+    clearImageBtn.addEventListener("click", resetSelectedImage);
+
     resetBtn.addEventListener("click", () => {
       history = [];
       lastReply = "";
+      resetSelectedImage();
       localStorage.removeItem(STORAGE_KEY);
       renderHistory();
 

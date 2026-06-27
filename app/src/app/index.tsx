@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,6 +12,7 @@ import {
 } from "react-native";
 
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import * as ImagePicker from "expo-image-picker";
 import * as Speech from "expo-speech";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -19,6 +21,13 @@ const API_URL = "https://monyet-ai.vercel.app/api/chat";
 type ChatItem = {
   role: "user" | "assistant";
   text: string;
+};
+
+type SelectedImage = {
+  uri: string;
+  base64: string;
+  mimeType: string;
+  name?: string;
 };
 
 export default function Index() {
@@ -31,6 +40,7 @@ export default function Index() {
   const [loading, setLoading] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [lastAudioUrl, setLastAudioUrl] = useState("");
+  const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
 
   const audioPlayer = useAudioPlayer(null);
   const audioStatus = useAudioPlayerStatus(audioPlayer);
@@ -108,6 +118,7 @@ export default function Index() {
     setHistory([]);
     setMessage("");
     setLastAudioUrl("");
+    setSelectedImage(null);
     setReply(
       "Percakapan di-reset. Otak gue kosong lagi, kayak chat grup jam 3 pagi."
     );
@@ -131,12 +142,56 @@ export default function Index() {
     );
   };
 
+  const pickImage = async () => {
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      Alert.alert(
+        "Galeri ditolak",
+        "Izinin akses foto dulu. MONYET nggak bisa nebak gambar dari udara kosong."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      quality: 0.45,
+      base64: true,
+    });
+
+    if (result.canceled) return;
+
+    const asset = result.assets?.[0];
+
+    if (!asset?.base64) {
+      Alert.alert("Gagal baca gambar", "Gambarnya nggak kebaca. Coba pilih ulang.");
+      return;
+    }
+
+    console.log("MONYET image picked:", asset.base64.length, asset.mimeType || "image/jpeg");
+
+    setSelectedImage({
+      uri: asset.uri,
+      base64: asset.base64,
+      mimeType: asset.mimeType || "image/jpeg",
+      name: asset.fileName || "gambar-user.jpg",
+    });
+  };
+
+  const removeSelectedImage = () => {
+    setSelectedImage(null);
+  };
+
   const generateReply = async () => {
     const text = message.trim();
+    const hasImage = Boolean(selectedImage);
+    const messageToSend = text || "Jelaskan gambar ini dengan gaya MONYET AI.";
 
-    if (!text) {
+    if (!text && !hasImage) {
       const emptyReply =
-        "Lah, ngetik aja belum. Gue disuruh nebak isi kepala lu?";
+        "Lah, ngetik atau upload gambar dulu. Gue disuruh nebak isi kepala lu?";
       setReply(emptyReply);
       speakText(emptyReply);
       return;
@@ -145,7 +200,9 @@ export default function Index() {
     try {
       setLoading(true);
       setReply(
-        "Sabar tod, gw lagi nyari info dulu biar ga goblok kayak lu yang cuma bisa asumsi tanpa bukti."
+        selectedImage
+          ? "Sabar, gue lagi ngeliatin gambarnya dulu. Jangan panik kayak HP lowbat 1%."
+          : "Sabar tod, gw lagi nyari info dulu biar ga goblok kayak lu yang cuma bisa asumsi tanpa bukti."
       );
       setLastAudioUrl("");
       await stopSpeaking();
@@ -158,9 +215,11 @@ export default function Index() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: text,
+          message: messageToSend,
           mode,
           history: currentHistory,
+          imageBase64: selectedImage?.base64 || null,
+          imageMimeType: selectedImage?.mimeType || null,
         }),
       });
 
@@ -175,9 +234,11 @@ export default function Index() {
         "Gue jawab kosong. Ini AI-nya lagi bengong kayak printer rusak.";
 
       const userChat: ChatItem = {
-        role: "user",
-        text,
-      };
+  role: "user",
+  text: selectedImage
+    ? `📷 Gambar terlampir${text ? `\n${text}` : ""}`
+    : text,
+};
 
       const assistantChat: ChatItem = {
         role: "assistant",
@@ -193,6 +254,7 @@ export default function Index() {
       setHistory(newHistory);
       setReply(aiReply);
       setMessage("");
+      setSelectedImage(null);
 
       if (data.audioUrl) {
         await playAudioUrl(data.audioUrl, aiReply);
@@ -263,6 +325,38 @@ export default function Index() {
         </View>
 
         <Text style={styles.label}>Mau lu omongin apa?</Text>
+
+        <View style={styles.imageActionRow}>
+          <TouchableOpacity
+            style={styles.imageButton}
+            onPress={pickImage}
+            disabled={loading}
+          >
+            <Text style={styles.imageButtonText}>UPLOAD IMAGE</Text>
+          </TouchableOpacity>
+
+          {selectedImage && (
+            <TouchableOpacity
+              style={styles.removeImageButton}
+              onPress={removeSelectedImage}
+              disabled={loading}
+            >
+              <Text style={styles.removeImageButtonText}>HAPUS IMAGE</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {selectedImage && (
+          <View style={styles.imagePreviewBox}>
+            <Image source={{ uri: selectedImage.uri }} style={styles.imagePreview} />
+            <View style={styles.imagePreviewTextBox}>
+              <Text style={styles.imagePreviewTitle}>Gambar temporary aktif</Text>
+              <Text style={styles.imagePreviewText} numberOfLines={2}>
+                Gambar ini cuma numpang lewat. Reset atau tutup app, hilang.
+              </Text>
+            </View>
+          </View>
+        )}
 
         <TextInput
           style={styles.input}
@@ -418,6 +512,72 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontSize: 16,
     marginBottom: 10,
+  },
+  imageActionRow: {
+    width: "100%",
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 12,
+  },
+  imageButton: {
+    flex: 1,
+    backgroundColor: "#2b2b2b",
+    paddingVertical: 13,
+    borderRadius: 14,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#444",
+  },
+  imageButtonText: {
+    color: "#ffcc00",
+    fontWeight: "900",
+    fontSize: 13,
+  },
+  removeImageButton: {
+    flex: 1,
+    backgroundColor: "#171717",
+    paddingVertical: 13,
+    borderRadius: 14,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#444",
+  },
+  removeImageButtonText: {
+    color: "#ffffff",
+    fontWeight: "900",
+    fontSize: 13,
+  },
+  imagePreviewBox: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#171717",
+    borderRadius: 18,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "#333333",
+    gap: 12,
+  },
+  imagePreview: {
+    width: 76,
+    height: 76,
+    borderRadius: 15,
+    backgroundColor: "#111111",
+  },
+  imagePreviewTextBox: {
+    flex: 1,
+  },
+  imagePreviewTitle: {
+    color: "#ffcc00",
+    fontWeight: "900",
+    fontSize: 13,
+    marginBottom: 5,
+  },
+  imagePreviewText: {
+    color: "#bdbdbd",
+    fontSize: 13,
+    lineHeight: 18,
   },
   input: {
     width: "100%",

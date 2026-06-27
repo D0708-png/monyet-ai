@@ -169,20 +169,47 @@ function isQuotaError(error) {
   );
 }
 
-async function generateReply(promptText, message) {
-  const model = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
+function normalizeImageBase64(value) {
+  if (typeof value !== "string") return "";
+
+  return value.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, "").trim();
+}
+
+function normalizeImageMimeType(value) {
+  const allowed = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+
+  if (typeof value === "string" && allowed.includes(value.toLowerCase())) {
+    return value.toLowerCase();
+  }
+
+  return "image/jpeg";
+}
+
+async function generateReply(promptText, message, imageData = null) {
+  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
+
+  const parts = [{ text: promptText }];
+
+  if (imageData?.base64) {
+    parts.push({
+      inlineData: {
+        mimeType: imageData.mimeType,
+        data: imageData.base64,
+      },
+    });
+  }
 
   const normalRequest = {
     model,
     contents: [
       {
         role: "user",
-        parts: [{ text: promptText }],
+        parts,
       },
     ],
   };
 
-  const needSearch = shouldUseSearch(message);
+  const needSearch = !imageData?.base64 && shouldUseSearch(message);
 
   if (!needSearch) {
     try {
@@ -274,7 +301,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { message, mode, history } = req.body || {};
+    const { message, mode, history, imageBase64, imageMimeType } = req.body || {};
 
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
@@ -282,11 +309,35 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!message || typeof message !== "string") {
+    const cleanMessage = typeof message === "string" ? message.trim() : "";
+    const cleanImageBase64 = normalizeImageBase64(imageBase64);
+    const hasImage = Boolean(cleanImageBase64);
+
+    if (!cleanMessage && !hasImage) {
       return res.status(400).json({
-        error: "Message kosong. Lah, mau gue bacotin apa?",
+        error: "Message atau gambar kosong. Lah, mau gue bacotin apa?",
       });
     }
+
+    if (cleanImageBase64.length > 4_000_000) {
+      return res.status(413).json({
+        error: "Gambarnya kegedean. Kompres dulu, jangan kirim ukuran poster caleg.",
+      });
+    }
+
+    const userMessage = cleanMessage || "Jelaskan gambar ini dengan gaya MONYET AI.";
+    const imageData = hasImage
+      ? {
+          base64: cleanImageBase64,
+          mimeType: normalizeImageMimeType(imageMimeType),
+        }
+      : null;
+
+    console.log("MONYET IMAGE DEBUG:", {
+      hasImage,
+      imageLength: cleanImageBase64.length,
+      imageMimeType: imageData?.mimeType || null,
+    });
 
     const selectedMode = mode === "BRUTAL" ? "BRUTAL" : "AMAN";
 
@@ -342,6 +393,8 @@ ATURAN AKURASI:
 - Search hanya dipakai kalau pertanyaan butuh info terbaru, harga, berita, geopolitik, ekonomi, kebijakan, kurs, konflik, atau data publik.
 - Jawaban tetap gaya MONYET.
 - Hinaan boleh mirip dengan kolom komentar netizen Indonesia yang paling brutal.
+- Kalau user mengirim gambar, analisis isi gambar dari visual yang dikirim. Jangan bilang tidak bisa melihat gambar kalau gambar tersedia.
+- Gambar bersifat temporary dan tidak masuk memory permanen.
 - Maksimal 4 sampai 6 kalimat.
 `;
 
@@ -373,7 +426,13 @@ RIWAYAT OBROLAN SEBELUMNYA:
 ${historyText}
 
 PESAN USER TERBARU:
-${message}
+${userMessage}
+
+STATUS GAMBAR:
+${imageData ? "User mengirim gambar. Gambar terlampir di request ini dan wajib dianalisis dari visualnya." : "User tidak mengirim gambar."}
+
+STATUS GAMBAR:
+${imageData ? "User mengirim gambar temporary. Pakai gambar itu sebagai konteks utama." : "Tidak ada gambar yang dikirim."}
 
 Tugas kamu:
 - Jawab pesan terbaru user.
@@ -385,12 +444,14 @@ Tugas kamu:
 `;
 
     const reply =
-  (await generateReply(promptText, message)) ||
+  (await generateReply(promptText, userMessage, imageData)) ||
   "Sabar ya sayang....";
 
     return res.status(200).json({
       reply,
       audioUrl: null,
+      imageReceived: hasImage,
+      imageSize: cleanImageBase64.length,
     });
   } catch (error) {
     console.error("MONYET API ERROR:", error);
